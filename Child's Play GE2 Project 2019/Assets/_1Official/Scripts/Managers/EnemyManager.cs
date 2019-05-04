@@ -5,126 +5,67 @@ using UnityEngine;
 public class EnemyManager : MonoBehaviour
 {
     #region Singleton
-    private static EnemyManager instance = null;
+    private static EnemyManager _instance = null;
 
     public static EnemyManager GetInstance()
     {
-        if (instance == null)
+        if (_instance == null)
         {
             if (GameManager.GetInstance() != null)
             {
-                instance = GameManager.GetInstance().gameObject.AddComponent<EnemyManager>(); 
+                _instance = GameManager.GetInstance().gameObject.AddComponent<EnemyManager>(); 
             }
         }
-        return instance;
+        return _instance;
     }
     #endregion
 
     //Variables
-    //private Enemy[] _enemyArray;
-    [SerializeField] private List<Enemy> listOfEnemies = new List<Enemy>();
+    [SerializeField] private List<Enemy> _listOfEnemies = new List<Enemy>();
 
     //References for Cashing
-    public Enemy enemyWithFocus;
-    //public CameraController cameraLocker;
-
-    public List<Enemy> ListOfEnemies { get => listOfEnemies;}
-
-    #region Unity API Methods
-    // Start is called before the first frame update
-    //void Start()
-    //{
-    //    //cameraLocker = Camera.main.GetComponent<CameraController>();
-    //    UpdateEnemyList();
-    //}
-
-    // Update is called once per frame
-    //void Update()
-    //{
-    //    //ChangePlayerFocusWithButton();
-    //    //Debug.Log("NUmber of enemies: " + listOfEnemies.Count);
-    //}
-    #endregion
+    private Enemy _enemyWithFocus;
+    public List<Enemy> ListOfEnemies { get => _listOfEnemies;}
+    public Enemy EnemyWithFocus { get => _enemyWithFocus; set => _enemyWithFocus = value; }
 
     /// <summary>
-    /// Populates the list of Enemies
+    /// Update is called once per frame
     /// </summary>
-    //public void UpdateEnemyList()
-    //{
-    //    //_enemyArray = GameObject.FindObjectsOfType<Enemy>();
-    //    //foreach (Enemy e in _enemyArray)
-    //    //{
-    //    //    listOfEnemies.Add(e);
-    //    //    if (e.HasFocus)
-    //    //    {
-    //    //        enemyWithFocus = e;
-    //    //    }
-    //    //}
-    //}
-
-    //#region Class Methods
-    /// <summary>
-    /// Takes out focus on ALL enemies
-    /// </summary>
-    //public void ClearEnemyFocus()
-    //{        
-    //    enemyWithFocus = null;
-    //    foreach (Enemy e in listOfEnemies)
-    //    {
-    //        //listOfEnemies.Add(e);
-    //        if (e.HasFocus)
-    //        {
-    //            //enemyWithFocus = e;
-    //            e.HasFocus = false;
-    //        }
-    //    }
-    //}
-    //public void ClearEnemyFocus()
-    //{
-    //    enemyWithFocus = null;
-    //}
-    ///// <summary>
-    ///// Updates "enemyWithFocus" reference
-    ///// </summary>
-    //public void UpdateEnemyWithFocus()
-    //{
-    //    enemyWithFocus = null;
-    //    foreach (Enemy e in listOfEnemies)
-    //    {
-    //        if (e.HasFocus)
-    //        {
-    //            enemyWithFocus = e;                
-    //        }
-    //    }
-    //}
-    //#endregion
-
     private void Update()
     {
         ChangeEnemyFocusWithButton();
     }
 
+    /// <summary>
+    /// Change the enemy the camera is focus on.
+    /// </summary>
     public void ChangeEnemyFocusWithButton()
     {
         if (Input.GetButtonDown("SwitchEnemy"))
         {
             CameraManager.GetInstance().EnemyWithFocus = NextEnemyInList(CameraManager.GetInstance().EnemyWithFocus);
-            CameraManager.GetInstance().isLocked = true;
+            CameraManager.GetInstance().IsLocked = true;
         }
     }
 
+    /// <summary>
+    /// Find the next enemy in the list
+    /// </summary>
+    /// <param name="enemy">enemy to find</param>
+    /// <returns>return the next enemy in the list or the first one 
+    ///          if you hit the last one or null if the list is empty</returns>
     public Enemy NextEnemyInList(Enemy enemy)
     {
         if (enemy == null)
         {
-            if (listOfEnemies.Count > 0)
+            if (_listOfEnemies.Count > 0)
             {
-                return listOfEnemies[0];
+                return _listOfEnemies[0];
             }
         }
         else
         {
-            int indexOfEnemy = listOfEnemies.IndexOf(enemy);
+            int indexOfEnemy = _listOfEnemies.IndexOf(enemy);
             if (indexOfEnemy < 0)
             {
                 return NextEnemyInList(null); ;
@@ -132,30 +73,41 @@ public class EnemyManager : MonoBehaviour
             else
             {
                 indexOfEnemy++;
-                if (indexOfEnemy < listOfEnemies.Count)
+                if (indexOfEnemy < _listOfEnemies.Count)
                 {
-                    return listOfEnemies[indexOfEnemy];
+                    return _listOfEnemies[indexOfEnemy];
                 }
             }
         }
         return null;
     }
 
+    /// <summary>
+    /// Add an emeny to the list
+    /// </summary>
+    /// <param name="enemy">enemy to add</param>
     public void AddEnemyToList(Enemy enemy)
     {
-        listOfEnemies.Add(enemy);
+        _listOfEnemies.Add(enemy);
         ScoreManager.GetInstance().EnemyCounts++;
     }
 
+    /// <summary>
+    /// Remove an ememy from the list
+    /// </summary>
+    /// <param name="enemy">enemy to remove</param>
     public void RemoveEnemyFromList(Enemy enemy)
     {
-        listOfEnemies.Remove(enemy);
-        if (LevelManager.GetInstance().LevelSpawningCompleted && listOfEnemies.Count == 0)
+        _listOfEnemies.Remove(enemy);
+        if (LevelManager.GetInstance().LevelSpawningCompleted && _listOfEnemies.Count == 0)
         {
             ScoreManager.GetInstance().CompileScore();
         }
     }
 
+    /// <summary>
+    /// Destroy all the enemy on the list.
+    /// </summary>
     public void DestroyAllEnemies()
     {
         foreach (var item in GameObject.FindObjectsOfType<Enemy>())

@@ -11,38 +11,34 @@ public class CameraManager : MonoBehaviour
 #endif
 
     #region Singleton
-    private static CameraManager instance = null;
+    private static CameraManager _instance = null;
 
     public static CameraManager GetInstance()
     {
-        if (instance == null)
+        if (_instance == null)
         {
-            instance = GameObject.FindObjectOfType<CameraManager>();
+            _instance = GameObject.FindObjectOfType<CameraManager>();
         }
-        return instance;
+        return _instance;
     }
     #endregion
 
     //Zoom Variables
-    public float zoomSpeed = 4f;
-    public float maxZoom = 10f;
-    public float minZoom = 3f;
-    public float pitch;
-    [SerializeField]
+    [SerializeField] private float _zoomSpeed = 4f;
+    [SerializeField] private float _maxZoom = 15f;
+    [SerializeField] private float _minZoom = 5f;
+    private float pitch = 0f;
     private float _currentZoom;
 
     //Rotation Variables
-    public float yawSpeed = 100f;
-    public Vector3 cameraArm;
-    [SerializeField]
+    [SerializeField] private float _yawSpeed = 100f;
+    [SerializeField] private Vector3 _cameraArm;
     private float _currentYaw;
-    
+
     //Camera Control Variables
-    [SerializeField]
-    public bool isLocked = true;
+    private bool _isLocked = true;
     private Vector3 _cameraFreeMovement;
-    [SerializeField]
-    private float _cameraTranslationSpeed = 5f;
+    [SerializeField] private float _cameraTranslationSpeed = 5f;
 
     //Camera Height Adjustments
     public LayerMask inferiorLayerMask = -1;
@@ -95,7 +91,12 @@ public class CameraManager : MonoBehaviour
         }
     }
 
+    public bool IsLocked { get => _isLocked; set => _isLocked = value; }
+
     #region UNITY methods
+    /// <summary>
+    /// LateUpdate is called once per frame after every update function were called.
+    /// </summary>
     private void LateUpdate()
     {
         if (Time.timeScale <= 0)
@@ -104,8 +105,12 @@ public class CameraManager : MonoBehaviour
         }
         CameraFollowPlayer();
         CameraZoomAndRotationFreeMode();
+        CameraZoomAndRotationLockMode();
     }
 
+    /// <summary>
+    /// Update is called once per frame
+    /// </summary>
     private void Update()
     {
         if (Time.timeScale <= 0)
@@ -133,19 +138,22 @@ public class CameraManager : MonoBehaviour
 
     #region Class methods
 
+    /// <summary>
+    /// Lock the camera on the selected player object
+    /// </summary>
     private void CameraFollowPlayer()
     {
-        if (PlayerManager.GetInstance().playerWithFocus == null)
+        if (PlayerManager.GetInstance().PlayerWithFocus == null)
         {
             return;
         }
-        _playerWithFocus = PlayerManager.GetInstance().playerWithFocus.transform;
-        if (EnemyManager.GetInstance().enemyWithFocus != null)
+        _playerWithFocus = PlayerManager.GetInstance().PlayerWithFocus.transform;
+        if (EnemyManager.GetInstance().EnemyWithFocus != null)
         {
-            enemyWithFocus = EnemyManager.GetInstance().enemyWithFocus.transform;
+            enemyWithFocus = EnemyManager.GetInstance().EnemyWithFocus.transform;
         }
 
-        if (!isLocked)
+        if (!_isLocked)
         {
             return;
         }
@@ -159,41 +167,49 @@ public class CameraManager : MonoBehaviour
             actorWithFocus = _playerWithFocus;
         }
 
-        this.transform.position = actorWithFocus.position - (cameraArm * _currentZoom);
+        this.transform.position = actorWithFocus.position - (_cameraArm * _currentZoom);
         this.transform.LookAt(actorWithFocus.position + (Vector3.up * pitch));
         this.transform.RotateAround(actorWithFocus.position, Vector3.up, _currentYaw);
     }
 
+    /// <summary>
+    /// Rotate the camera around the focused player object
+    /// </summary>
     private void CameraZoomAndRotationWhenLocked()
     {
-        if (this.isLocked)
+        if (this._isLocked)
         {
-            _currentZoom -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
-            _currentZoom = Mathf.Clamp(_currentZoom, minZoom, maxZoom);
+            _currentZoom -= Input.GetAxis("Mouse ScrollWheel") * _zoomSpeed;
+            _currentZoom = Mathf.Clamp(_currentZoom, _minZoom, _maxZoom);
 
-            _currentYaw += Input.GetAxis("RotateCamera") * yawSpeed * Time.fixedDeltaTime;           
+            _currentYaw += Input.GetAxis("RotateCamera") * _yawSpeed * Time.fixedDeltaTime;           
         }
     }
 
+    /// <summary>
+    /// move the camera using the keyboard
+    /// </summary>
     private void CameraMovementFreeModeWithKeyboard()
     {
         if (Input.GetButton("ForwardBackCameraMovement") || Input.GetButton("LateralCameraMovement"))
         {
-            this.isLocked = false;
+            this._isLocked = false;
             _cameraFreeMovement = new Vector3(GetKeyboardInput.x, 0, GetKeyboardInput.y);
-            _cameraFreeMovement *= _cameraTranslationSpeed * Time.fixedDeltaTime;
-            _cameraFreeMovement = Quaternion.Euler(new Vector3(0, this.transform.eulerAngles.y, 0)) * _cameraFreeMovement;
+            _cameraFreeMovement = Quaternion.Euler(new Vector3(0, this.transform.eulerAngles.y, 0)) * _cameraFreeMovement * Time.fixedDeltaTime;
             _cameraFreeMovement = this.transform.InverseTransformDirection(_cameraFreeMovement);
 
             this.transform.Translate(_cameraFreeMovement);
         }
     }
 
+    /// <summary>
+    /// Move the camera using the mouse with moving it to the edge of the screen
+    /// </summary>
     private void CameraMovementFreeModeWithMouse()
     {
         if (Input.mousePosition.y >= Screen.height - _screenBorder || Input.mousePosition.y <= _screenBorder || Input.mousePosition.x >= Screen.width - _screenBorder || Input.mousePosition.x <= _screenBorder)
         {
-            this.isLocked = false;
+            this._isLocked = false;
 
             Rect leftRect = new Rect(0, 0, _screenBorder, Screen.height);
             Rect rightRect = new Rect(Screen.width - _screenBorder, 0, _screenBorder, Screen.height);
@@ -205,26 +221,63 @@ public class CameraManager : MonoBehaviour
             _cameraFreeMovement.x *= Settings.GetInstance().SensitivityH;
             _cameraFreeMovement.z *= Settings.GetInstance().SensitivityV;
 
-            _cameraFreeMovement *= _cameraTranslationSpeed * Time.fixedDeltaTime;
-            _cameraFreeMovement = Quaternion.Euler(new Vector3(0f, this.transform.eulerAngles.y, 0f)) * _cameraFreeMovement;
+            _cameraFreeMovement = Quaternion.Euler(new Vector3(0f, this.transform.eulerAngles.y, 0f)) * _cameraFreeMovement * Time.fixedDeltaTime;
             _cameraFreeMovement = this.transform.InverseTransformDirection(_cameraFreeMovement);
 
             this.transform.Translate(_cameraFreeMovement);
         }
     }
 
+    /// <summary>
+    /// Deals with rotating and zoom when the camera is in lock mode
+    /// </summary>
+    private void CameraZoomAndRotationLockMode()
+    {
+
+        if (Input.GetButton("CameraMouseRot"))
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            this._isLocked = false;
+
+            this.transform.Rotate(Vector3.up, GetMousePosition.x * 2 * _yawSpeed * Time.fixedDeltaTime * .3f, Space.World);
+            _currentYaw += GetMousePosition.x * _yawSpeed * Time.fixedDeltaTime;
+
+
+            _currentZoom += GetMousePosition.y * _zoomSpeed / 10.0f;
+            _currentZoom = Mathf.Clamp(_currentZoom, _minZoom, _maxZoom);
+
+            lerpHeight = _currentZoom;
+            float difference = 0f;
+
+            if (DistanceToTheGround() != lerpHeight)
+            {
+                difference = lerpHeight - DistanceToTheGround();
+            }
+
+            this.transform.position = Vector3.Lerp(this.transform.position, new Vector3(this.transform.position.x, lerpHeight + difference, this.transform.position.z), Time.deltaTime * 5f);
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+        }
+
+    }
+
+    /// <summary>
+    /// deals with zooming and rotating when the camera is in free mode
+    /// </summary>
     private void CameraZoomAndRotationFreeMode()
     {
-        if (!this.isLocked)
+        if (!this._isLocked )
         {
             if (Input.GetButton("RotateCamera"))
             {
-                this.transform.Rotate(Vector3.up, Input.GetAxis("RotateCamera") * 2 * yawSpeed * Time.fixedDeltaTime * .3f, Space.World);
-                _currentYaw += Input.GetAxis("RotateCamera") * yawSpeed * Time.fixedDeltaTime;                
+                this.transform.Rotate(Vector3.up, Input.GetAxis("RotateCamera") * 2 * _yawSpeed * Time.fixedDeltaTime * .3f, Space.World);
+                _currentYaw += Input.GetAxis("RotateCamera") * _yawSpeed * Time.fixedDeltaTime;                
             }
 
-            _currentZoom += Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
-            _currentZoom = Mathf.Clamp(_currentZoom, minZoom, maxZoom);
+            _currentZoom += Input.GetAxis("Mouse ScrollWheel") * _zoomSpeed;
+            _currentZoom = Mathf.Clamp(_currentZoom, _minZoom, _maxZoom);
 
             lerpHeight = _currentZoom;
             float difference = 0f;
@@ -238,6 +291,9 @@ public class CameraManager : MonoBehaviour
         }
     }    
 
+    /// <summary>
+    /// makes _currentYaw do full cycle from 0 to 360
+    /// </summary>
     private void YawCorrection()
     {
         if(_currentYaw > 360)
@@ -250,6 +306,10 @@ public class CameraManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Caculate the distance to the ground from the this object
+    /// </summary>
+    /// <returns> returns the distance</returns>
     public float DistanceToTheGround()
     {
         Ray ray = new Ray(this.transform.position, Vector3.down);
@@ -262,15 +322,20 @@ public class CameraManager : MonoBehaviour
         return 0f;
     }
 
+    /// <summary>
+    /// Set the camera to focus or not
+    /// </summary>
+    /// <param name="toggle">use toggle mode or not</param>
+    /// <param name="setOn">set on(default) or off </param>
     public void CameraLockerButton(bool toggle = true, bool setOn = true)
     {
         if (toggle)
         {
-            this.isLocked = !this.isLocked; 
+            this._isLocked = !this._isLocked; 
         }
         else
         {
-            this.isLocked = setOn;
+            this._isLocked = setOn;
         }
     }
     #endregion

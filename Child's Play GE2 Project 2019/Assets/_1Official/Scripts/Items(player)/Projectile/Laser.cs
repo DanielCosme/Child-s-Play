@@ -3,19 +3,20 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-
-//[RequireComponent(typeof(Tower))]
 public class Laser : Projectile
 {
-    [SerializeField] private float secondPerTick;
-    [SerializeField] private float secondItLast;
+    [SerializeField] private float _secondPerTick;
+    [SerializeField] private float _secondItLast;
 
-    public override void Damage(GameObject enemyGO)
+    /// <summary>
+    /// Damage the oject it touch.
+    /// </summary>
+    /// <param name="enemyGO"></param>
+    public override void Damage(Enemy enemy)
     {
-        Enemy enemy = enemyGO.GetComponent<Enemy>();
         if (enemy != null)
         {
-            enemy.DamageOverTime(damageValue, secondPerTick, secondItLast);
+            enemy.DamageOverTime(_damageValue, _secondPerTick, _secondItLast);
         }
     }
 

@@ -24,8 +24,6 @@ public class Item : Player
     [SerializeField] private GameObject rangeGOUpgrade;
     [SerializeField] private Item upgradeVersion;
 
-    private AudioSource myAudioSource;
-
     public GameObject RangeGO { get => rangeGO; }
     public int Value { get => value; set => this.value = value; }
     public string ItemName { get => itemName; }
@@ -34,18 +32,9 @@ public class Item : Player
     public Item UpgradeVersion { get => upgradeVersion; }
     public GameObject RangeGOUpgrade { get => rangeGOUpgrade; set => rangeGOUpgrade = value; }
 
-    // Start is called before the first frame update
-    //void Awake()
-    //{
-    //    //if (rangeGO != null)
-    //    //{
-    //    //    rangeGO.SetActive(false);
-    //    //}
-    //
-    //    //indexInGM = 0;
-    //    //itemDescription = "This is a placeholder description";
-    //}
-
+    /// <summary>
+    /// Called immediately after the object is created
+    /// </summary>
     private void Awake()
     {
         if (rangeGO != null)
@@ -65,9 +54,17 @@ public class Item : Player
             Destroy(GetComponent<Tower>());
             Destroy(this);
         }
-        myAudioSource = GetComponent<AudioSource>();
+        else
+        {
+            value /= 2;
+            PlayerManager.GetInstance().AddPlayer(this);
+        }
     }
 
+    /// <summary>
+    /// Used to scale the Range of the Item to the size set.
+    /// </summary>
+    /// <param name="scaleV3">The size of the Range</param>
     public void SetRangeScale(float scaleV3)
     {
         rangeGO.transform.localScale = Vector3.one * scaleV3 * 2.0f;
@@ -75,6 +72,10 @@ public class Item : Player
             Mathf.Clamp(rangeGO.transform.localScale.y * 0.33f, 0.0f, 10.0f), rangeGO.transform.localScale.z);
     }
 
+    /// <summary>
+    /// Used to scale the Range of the Item Upgraded version to the size set.
+    /// </summary>
+    /// <param name="scaleV3">The size of the Range</param>
     public void SetRangeUPScale(float scaleV3)
     {
         rangeGOUpgrade.transform.localScale = Vector3.one * scaleV3 * 2.0f;
@@ -82,17 +83,4 @@ public class Item : Player
             Mathf.Clamp(rangeGOUpgrade.transform.localScale.y * 0.33f, 0.0f, 10.0f), rangeGOUpgrade.transform.localScale.z);
     }
 
-    public override void TakeDamage(int damageValue)
-    {
-        base.TakeDamage(damageValue);
-        PlaySound();
-    }
-
-    private void PlaySound()
-    {
-        if (myAudioSource.clip != null && !myAudioSource.isPlaying)
-        {
-            myAudioSource.PlayOneShot(myAudioSource.clip);   
-        }
-    }
 }
